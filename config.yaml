@@ -1,0 +1,47 @@
+# Configurations for model training and evaluation
+
+# Directory paths
+DIR: "D:/Lib/Unetplusplus"
+DATASET_PATH: "D:/Unetplusplus/Dataset/DATA/withTONIC/"
+
+# Dataset directories
+TRAIN: "train"
+VALID: "valid"
+TEST: "test"
+
+#Data type
+IMAGE_WIDTH: 1152   #Expected image width divisible by 32
+IMAGE_HEIGHT: 2048  #Expected image height divisible by 32
+IMAGE_EXTENSION: ".png"
+MAKS_EXTENSION: ".png"
+
+# Model parameters
+MODEL:
+  MULTICLASS_MODE: "multiclass"
+  EXP_NAME: "D:/Lib/Unetplusplus/clean_code_here/runs/train/Unetplusplus_mobileone_s4_Focal_Tversky_Loss_TRAIN_OneCycleLR_Adam_fused_amsgrad"
+  ENCODER: "mobileone_s4"
+  ENCODER_WEIGHTS: "imagenet"
+  CLASSES:
+    - "background"
+    - "pnt_blister"
+    - "pnt_dent"
+    - "pnt_orange"
+    - "pnt_scratch"
+    - "pnt_stuck"
+    - "pnt_craters"
+    - "pnt_filmleftovers"
+    - "pnt_wrongpowder"
+  ACTIVATION: null
+  DEVICE: "cuda"  # or "cpu"
+  BATCH_SIZE: 1
+  LR0: 0.01       # initial learning rate
+  LRF: 0.1        # final OneCycleLR learning rate (lr0 * lrf)
+  EPOCHS: 1000
+  CHANNELS: 3
+
+
+# Augmentations
+HORIZONTAL_FLIP: 0.5    # image flip up-down (probability)
+flipVERTICAL_FLIP: 0.5  # image flip left-right (probability)
+TRANSLATE: 0.2          # image translation (probability)
+MIXUP: 0.15             # image mixup (probability)
