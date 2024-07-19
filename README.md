@@ -18,13 +18,13 @@ This repository represents a segmentation project training and evaluation for un
  
   To train a model, use:
   ```bash
-  python train.py --config.yaml
+  python train.py --config config.yaml
   
 - Evaluate the model
  
   To evaluate the model, use:
   ```bash
-  python test.py --config.yaml
+  python test.py --config config.yaml
 
 > config.yaml is for training and evaluation
 
