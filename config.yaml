@@ -1,8 +1,8 @@
 # Configurations for model training and evaluation
 
 # Directory paths
-DIR: "D:/Lib/Unetplusplus"
-DATASET_PATH: "D:/Unetplusplus/Dataset/DATA/withTONIC/"
+DIR: "path-to-project"
+DATASET_PATH: "path-to-dataset"
 
 # Dataset directories
 TRAIN: "train"
@@ -17,20 +17,20 @@ MAKS_EXTENSION: ".png"
 
 # Model parameters
 MODEL:
-  MULTICLASS_MODE: "multiclass"
+  MULTICLASS_MODE: "multiclass" 
   EXP_NAME: "D:/Lib/Unetplusplus/clean_code_here/runs/train/Unetplusplus_mobileone_s4_Focal_Tversky_Loss_TRAIN_OneCycleLR_Adam_fused_amsgrad"
   ENCODER: "mobileone_s4"
   ENCODER_WEIGHTS: "imagenet"
   CLASSES:
     - "background"
-    - "pnt_blister"
-    - "pnt_dent"
-    - "pnt_orange"
-    - "pnt_scratch"
-    - "pnt_stuck"
-    - "pnt_craters"
-    - "pnt_filmleftovers"
-    - "pnt_wrongpowder"
+    - "class-1"
+    - "class-2"
+    - "class-3"
+    - "class-4"
+    - "class-5"
+    - "class-6"
+    - "class-7"
+    - "class-8"
   ACTIVATION: null
   DEVICE: "cuda"  # or "cpu"
   BATCH_SIZE: 1
