@@ -1,4 +1,4 @@
-# Segmentation_with_Unet_Plus_Plus
+# Segmentation with Unet++
 
 This repository represents a segmentation project training and evaluation for unett++ models
 
