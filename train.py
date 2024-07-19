@@ -28,7 +28,7 @@ def main(config_file):
     EXTENSIONS = [IMAGE_EXTENSION, MAKS_EXTENSION]
     IMAGE_WIDTH,IMAGE_HEIGHT = config["IMAGE_WIDTH"], config["IMAGE_HEIGHT"]
     # Model hyperparameters:
-    MULTICLASS_MODE = config["MODEL"]["MULTICLASS_MODE"]
+    MODE = config["MODEL"]["MODE"]
     EXP_NAME = config["MODEL"]["EXP_NAME"]
     ENCODER = config["MODEL"]["ENCODER"]
     ENCODER_WEIGHTS = config["MODEL"]["ENCODER_WEIGHTS"]
@@ -111,7 +111,7 @@ def main(config_file):
     print(f'Dataset stats:\n Training Set: {len(train_dataset)} images\n Validation Set: {len(valid_dataset)} images')
 
     # Define Loss and Metrics to Monitor =====================================================
-    loss = smp.losses.TverskyLoss(mode=MULTICLASS_MODE)
+    loss = smp.losses.TverskyLoss(mode=MODE)
     loss.__name__ = 'TverskyLoss'
 
     metrics = [
