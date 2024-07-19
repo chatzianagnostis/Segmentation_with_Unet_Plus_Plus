@@ -17,7 +17,7 @@ MAKS_EXTENSION: ".png"
 
 # Model parameters
 MODEL:
-  MULTICLASS_MODE: "multiclass" 
+  MODE: "multiclass" 
   EXP_NAME: "name-your-model"
   ENCODER: "mobileone_s4"
   ENCODER_WEIGHTS: "imagenet"
