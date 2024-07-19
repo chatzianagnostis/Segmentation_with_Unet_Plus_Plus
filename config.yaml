@@ -18,7 +18,7 @@ MAKS_EXTENSION: ".png"
 # Model parameters
 MODEL:
   MULTICLASS_MODE: "multiclass" 
-  EXP_NAME: "D:/Lib/Unetplusplus/clean_code_here/runs/train/Unetplusplus_mobileone_s4_Focal_Tversky_Loss_TRAIN_OneCycleLR_Adam_fused_amsgrad"
+  EXP_NAME: "name-your-model"
   ENCODER: "mobileone_s4"
   ENCODER_WEIGHTS: "imagenet"
   CLASSES:
