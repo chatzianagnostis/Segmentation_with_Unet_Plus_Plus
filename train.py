@@ -12,7 +12,7 @@ import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
 from dataset import create_dataset
-from utils import load_config
+from utils import load_config, PanopticQuality
 
 
 def main(config_file):
@@ -114,7 +114,11 @@ def main(config_file):
     loss = smp.losses.TverskyLoss(mode=MULTICLASS_MODE)
     loss.__name__ = 'TverskyLoss'
 
-    metrics=[] #TODO
+    metrics = [
+        smp.utils.metrics.PanopticQuality(smp.utils.metrics.SegmentationQuality(),smp.utils.metrics.RecognitionQuality()),
+        smp.utils.metrics.SegmentationQuality(),
+        smp.utils.metrics.RecognitionQuality()
+    ]
 
     # OneCycleLR parameters
     lr0 = LR0  # initial learning rate
@@ -146,6 +150,9 @@ def main(config_file):
 
     # Train model ============================================================================
     best_loss = float('inf')
+    best_pq = -float('inf')
+    best_sq = -float('inf')
+    best_rq = -float('inf')
     writer = SummaryWriter(OUTPUT_FOLDER)
 
     print('Starting Training ...')
@@ -164,13 +171,38 @@ def main(config_file):
         current_lr = scheduler.get_last_lr()[0]
         writer.add_scalar('Learning Rate', current_lr, epoch)
 
+        # Log the PQ metric
+        writer.add_scalar('PQ/train', train_logs['panoptic_quality'], epoch)
+        writer.add_scalar('PQ/val', valid_logs['panoptic_quality'], epoch)
+        # Log the SQ metric
+        writer.add_scalar('SQ/train', train_logs['segmentation_quality'], epoch)
+        writer.add_scalar('SQ/val', valid_logs['segmentation_quality'], epoch)
+        # Log the RQ metric
+        writer.add_scalar('RQ/train', train_logs['recognition_quality'], epoch)
+        writer.add_scalar('RQ/val', valid_logs['recognition_quality'], epoch)
+
+
         # Save the model after each epoch
         torch.save(model, f'{SAVE_MODEL_PATH}/last_model.pth')
+
 
         # Save the model with the best loss
         if valid_logs['TverskyLoss'] < best_loss:
             best_loss = valid_logs['TverskyLoss']
-            torch.save(model, f'{SAVE_MODEL_PATH}/best_model.pth')
+            torch.save(model, f'{SAVE_MODEL_PATH}/best_loss_model.pth')
+        # Save the model with the best panoptic qualty
+        if valid_logs['panoptic_quality'] > best_pq:
+            best_pq = valid_logs['panoptic_quality']
+            torch.save(model, f'{SAVE_MODEL_PATH}/best_pq_model.pth')
+        # Save the model with the best segmentation qualty
+        if valid_logs['segmentation_quality'] > best_sq:
+            best_sq = valid_logs['segmentation_quality']
+            torch.save(model, f'{SAVE_MODEL_PATH}/best_sq_model.pth')
+        # Save the model with the best recognition qualty
+        if valid_logs['recognition_quality'] > best_rq:
+            best_rq = valid_logs['recognition_quality']
+            torch.save(model, f'{SAVE_MODEL_PATH}/best_rq_model.pth')
+
 
         # Step the scheduler
         scheduler.step()

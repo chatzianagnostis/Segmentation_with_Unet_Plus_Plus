@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from dataset import create_dataset
-from utils import load_config, seg2bbox, process_batch, create_single_masks, iou, conf_mat_bboxes, conf_mat_pixel, compine_conf_matrix, calculate_tp_fp_fn, calculate_metrics, visualize_segments, visualize_instances
+from utils import load_config, seg2bbox, process_batch, create_single_masks, conf_mat_bboxes, conf_mat_pixel, compine_conf_matrix, calculate_tp_fp_fn, calculate_metrics, compute_sq, compute_rq, compute_pq, compute_tp_iou, visualize_segments, visualize_instances
 
 
 def main(config_file):
@@ -25,7 +25,7 @@ def main(config_file):
     # Directory paths:
     DIR = config["DIR"]
     DATASET_PATH = config["DATASET_PATH"]
-    TEST_PATH = os.path.join(DATASET_PATH, 'test')
+    TEST_PATH = os.path.join(DATASET_PATH, 'train')
     IMAGE_EXTENSION = config["IMAGE_EXTENSION"]
     MAKS_EXTENSION = config["MAKS_EXTENSION"]
     EXTENSIONS = [IMAGE_EXTENSION, MAKS_EXTENSION]
@@ -35,7 +35,7 @@ def main(config_file):
     MULTICLASS_MODE = config["MODEL"]["MULTICLASS_MODE"]
     EXP_NAME = config["MODEL"]["EXP_NAME"]
     CLASSES = config["MODEL"]["CLASSES"]
-    MODEL_PATH = os.path.join(DIR,'runs','train', EXP_NAME, 'model', 'best_model.pth')
+    MODEL_PATH = os.path.join(DIR,'runs','train', EXP_NAME, 'model', 'last_model.pth')
     
     # Create folder for train resuts =========================================================
     OUTPUT_FOLDER = os.path.join(DIR, 'runs','train', EXP_NAME)
@@ -48,7 +48,8 @@ def main(config_file):
         os.makedirs(os.path.join(DETECT_FOLDER,'segments'))
     if not os.path.exists(os.path.join(DETECT_FOLDER,'bboxes')):
         os.makedirs(os.path.join(DETECT_FOLDER,'bboxes'))
-        
+    if not os.path.exists(os.path.join(DETECT_FOLDER,'ground_truths')):
+        os.makedirs(os.path.join(DETECT_FOLDER,'ground_truths'))       
 
     # Define tranforms using Albumations =====================================================
     test_transform = A.Compose([
@@ -76,20 +77,20 @@ def main(config_file):
 
     # Define Loss and Metrics to Monitor =====================================================
     loss = smp.losses.TverskyLoss(mode=MULTICLASS_MODE, alpha=0.6, beta=0.4)
-    loss.__name__ = 'FocalTverskyLoss'
+    loss.__name__ = 'TverskyLoss'
 
     metrics=[] #TODO
 
-    # Test Epoch =============================================================================
-    test_epoch = smp.utils.train.ValidEpoch(
-    model=model,
-    loss=loss,
-    metrics=metrics,
-    device=DEVICE,
-    )
-    print('Testing ...')
-    logs = test_epoch.run(test_set)
-    print(logs)
+    # # Test Epoch =============================================================================
+    # test_epoch = smp.utils.train.ValidEpoch(
+    # model=model,
+    # loss=loss,
+    # metrics=metrics,
+    # device=DEVICE,
+    # )
+    # print('Testing ...')
+    # logs = test_epoch.run(test_set)
+    # print(logs)
     
     def predict_segments(model, image, batch_size=1, class_num=9, conf_thres=0.001, iou_thres=0.6 ):
         """
@@ -126,38 +127,54 @@ def main(config_file):
 
     conf_matrix_pixel = []
     conf_matrix_instance = []
-    total_iou_matrix = []
+    low_pq = []
+    total_sq = 0
+    total_rq = 0
+    total_pq =0
     class_dict = {i: CLASSES[i] for i in range(len(CLASSES))}
-    
     for i in range(len(test_dataset)):
-        start_time = time.time()
         image_vis = test_dataset[i][0].permute(1,2,0)
         image_vis = image_vis.numpy()*255
         image_vis = image_vis.astype('uint8')
         image, gt_mask = test_dataset[i]
         gt_mask = (gt_mask.squeeze().cpu().numpy().round())
+
         gt_bboxes, gt_classes = seg2bbox(gt_mask)
 
         pr_mask, pr_label, pr_conf, single_channel_mask = predict_segments(model, image_vis)
         pr_bboxes, pr_classes = seg2bbox((single_channel_mask))
-
-        conf_matrix_pixel.append(conf_mat_pixel(single_channel_mask, gt_mask))
-        conf_matrix_instance.append(conf_mat_bboxes(pr_bboxes, pr_classes, gt_bboxes, gt_classes))
-
-        # Calculate IoU matrix for the current image
-        iou_matrix = np.zeros((len(pr_bboxes), len(gt_bboxes)))
-        for p_idx, pr_bbox in enumerate(pr_bboxes):
-            for g_idx, gt_bbox in enumerate(gt_bboxes):
-                iou_matrix[p_idx, g_idx] = iou(pr_bbox, gt_bbox)
         
-        total_iou_matrix.append(iou_matrix)
+        cm_p = conf_mat_pixel(single_channel_mask, gt_mask)
+        cm_i = conf_mat_bboxes(pr_bboxes, pr_classes, gt_bboxes, gt_classes)
+        conf_matrix_pixel.append(cm_p)
+        conf_matrix_instance.append(cm_i)
 
+        ious = compute_tp_iou(pr_bboxes,pr_classes,gt_bboxes,gt_classes)
+
+        true_positive, false_positive, false_negative = calculate_tp_fp_fn(cm_p)
+        sq = compute_sq(ious)
+        rq = compute_rq(sum(true_positive[1:]), sum(false_positive[1:]), sum(false_negative[1:])) #without background
+        pq = compute_pq(sq, rq)
+        print(f"Image {i}: SQ={sq}, RQ={rq}, PQ={pq}")
+
+        total_sq += sq
+        total_rq += rq
+        total_pq += pq
+        if pq<0.5:
+            low_pq.append(f"Image {i}")
+
+
+        # Visualize predictions
         save_path_pixel = f'{DETECT_FOLDER}/segments/image_{i}.png'
         visualize_segments(image_vis, pr_mask, pr_label, pr_conf, class_dict, save_path_pixel)
         pr_bboxes, pr_classes = seg2bbox((np.transpose(single_channel_mask)))
         save_path_instance = f'{DETECT_FOLDER}/bboxes/image_{i}.png'
         visualize_instances(image_vis, pr_bboxes, pr_classes, class_dict, save_path_instance)
+        gt_bboxes, gt_classes = seg2bbox((np.transpose(gt_mask)))
+        save_path_instance = f'{DETECT_FOLDER}/ground_truths/image_{i}.png'
+        visualize_instances(image_vis, gt_bboxes, gt_classes, class_dict, save_path_instance)
 
+    print(f"Segmentation Quality:{total_sq/len(test_dataset)}\nRecognition Quality:{total_rq/len(test_dataset)}\nPanoptic Quality:{total_pq/len(test_dataset)}")
 
     combined_conf_matrix_pixel=compine_conf_matrix(conf_matrix_pixel)
     combined_conf_matrix_instance=compine_conf_matrix(conf_matrix_instance)
@@ -171,7 +188,6 @@ def main(config_file):
     print(f"{'Class':<15}{'Precision':<15}{'Recall':<15}{'F1 Score':<15}")
     for class_name, precision, recall, f1 in zip(CLASSES, precision, recall, f1_score):
         print(f"{class_name:<15}{precision:<15.2f}{recall:<15.2f}{f1:<15.2f}")
-
     # Plot conf
     plt.figure(figsize=(10, 8))
     sns.heatmap(combined_conf_matrix_pixel, annot=True, fmt="d", cmap='Blues', xticklabels=CLASSES, yticklabels=CLASSES)
@@ -192,7 +208,6 @@ def main(config_file):
     print(f"{'Class':<15}{'Precision':<15}{'Recall':<15}{'F1 Score':<15}")
     for class_name, precision, recall, f1 in zip(CLASSES, precision, recall, f1_score):
         print(f"{class_name:<15}{precision:<15.2f}{recall:<15.2f}{f1:<15.2f}")
-
     # Plot conf
     plt.figure(figsize=(10, 8))
     sns.heatmap(combined_conf_matrix_instance, annot=True, fmt="d", cmap='Blues', xticklabels=CLASSES, yticklabels=CLASSES)
@@ -203,6 +218,7 @@ def main(config_file):
     plt.savefig(filename)
     plt.show()
     plt.close()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test Unet++ with custom dataset")

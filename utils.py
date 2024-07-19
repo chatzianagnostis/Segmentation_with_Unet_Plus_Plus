@@ -4,6 +4,7 @@ import torch
 from skimage.measure import label, regionprops
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
+import segmentation_models_pytorch as smp
 import cv2
 
 
@@ -39,7 +40,7 @@ def seg2bbox(segm):
     for prop in props:
         x1, y1, x2, y2 = prop.bbox
         bboxes.append([x1, y1, x2, y2])
-        class_in_bbox = np.argmax(np.bincount(segm[x1:x2, y1:y2].flatten()))
+        class_in_bbox = np.argmax(np.bincount(segm[x1:x2, y1:y2].flatten())[1:])+1
         classes.append(class_in_bbox)
     return bboxes, classes
 
@@ -176,14 +177,11 @@ def conf_mat_bboxes(pr_bboxes, pr_bclasses, gt_bboxes, gt_classes, iou_threshold
     return cm
 
 def conf_mat_pixel(pred_mask,gt_mask):
-
     # Flatten the masks
     pred_mask_flat = pred_mask.flatten()
     gt_mask_flat = gt_mask.flatten()
-
     # Compute the confusion matrix
     cm = confusion_matrix(gt_mask_flat, pred_mask_flat, labels=np.arange(9))
-    
     return cm
 
 def compine_conf_matrix(conf_matrixes):
@@ -204,7 +202,6 @@ def calculate_metrics(TP, FP, FN):
     f1_score = np.nan_to_num(f1_score)
     return precision, recall, f1_score
 
-
 def calculate_tp_fp_fn(conf_matrix):
     # Calculate TP, FP, FN for each class
     TP = np.diag(conf_matrix)
@@ -212,6 +209,96 @@ def calculate_tp_fp_fn(conf_matrix):
     FN = conf_matrix.sum(axis=1) - TP
     return TP, FP, FN
 
+# =====================Panoptic Segmentation=====================
+
+class PanopticQuality(smp.utils.base.Metric):
+    def __init__(self):
+        super(PanopticQuality, self).__init__()
+        self.reset()
+
+    def reset(self):
+        self.true_positives = []
+        self.false_positives = 0
+        self.false_negatives = 0
+
+    def update(self, y_pred, y_true):
+        # Assuming y_pred and y_true are binary masks
+        tp = ((y_pred == 1) & (y_true == 1)).sum().item()
+        fp = ((y_pred == 1) & (y_true == 0)).sum().item()
+        fn = ((y_pred == 0) & (y_true == 1)).sum().item()
+        
+        iou = tp / (tp + fp + fn + 1e-6)  # Add small value to avoid division by zero
+        self.true_positives.append(iou)
+        self.false_positives += fp
+        self.false_negatives += fn
+
+    def compute(self):
+        sq = compute_sq(self.true_positives)
+        rq = compute_rq(sum(self.true_positives), self.false_positives, self.false_negatives)
+        pq = compute_pq(sq, rq)
+        return pq
+
+    def forward(self, y_pred, y_true):
+        self.update(y_pred, y_true)
+        pq = self.compute()
+        return torch.tensor(pq, device=y_pred.device)
+
+
+def compute_sq(true_positives):
+    """
+    Calculate Segmentation Quality (SQ).
+    
+    Parameters:
+    true_positives (list): A list with IoU values for True Positives (TP).
+    
+    Returns:
+    float: Segmentation Quality (SQ).
+    """
+    if not true_positives:
+        return 0.0
+    return sum(true_positives) / len(true_positives)
+
+def compute_rq(true_positives, false_positives, false_negatives):
+    """
+    Calculate Recognition Quality (RQ).
+    
+    Parameters:
+    true_positives (int): Number of True Positives (TP).
+    false_positives (int):Number of  False Positives (FP).
+    false_negatives (int): Number of  False Negatives (FN).
+    
+    Returns:
+    float: Recognition Quality (RQ).
+    """
+    if true_positives == 0:
+        return 0.0
+    precision = true_positives / (true_positives + false_positives)
+    recall = true_positives / (true_positives + false_negatives)
+    if precision + recall == 0:
+        return 0.0
+    return 2 * (precision * recall) / (precision + recall)
+
+def compute_pq(sq, rq):
+    """
+    Calculate Panoptic Quality (PQ).
+    
+    Parameters:
+    sq (float): Segmentation Quality (SQ).
+    rq (float): Recognition Quality (RQ).
+    
+    Returns:
+    float: Panoptic Quality (PQ).
+    """
+    return sq * rq
+
+def compute_tp_iou(pr_bboxes,pr_classes,gt_bboxes,gt_classes):
+    ious = []
+    for pred in zip(pr_bboxes,pr_classes):
+            for gt in zip(gt_bboxes,gt_classes):
+                io = iou(pred[0], gt[0])
+                if io > 0.5 and pred[1]==gt[1]:
+                    ious.append(io)
+    return ious
 
 # =====================Visualizations=====================
 
@@ -253,7 +340,7 @@ def visualize_segments(original_img, pr_masks, pr_classes, pr_confidences,class_
     
     # Save the image using OpenCV
     cv2.imwrite(output_path, img_copy)
-    print(f"Image saved to {output_path}")
+    #print(f"Image saved to {output_path}")
 
 def visualize_instances(original_img, pr_bboxes, pr_classes, class_dict, output_path):
     """
@@ -301,10 +388,10 @@ def visualize_instances(original_img, pr_bboxes, pr_classes, class_dict, output_
 
     # Save the image using OpenCV
     cv2.imwrite(output_path, img_copy)
-    print(f"Image saved to {output_path}")
+    #print(f"Image saved to {output_path}")
 
 # =====================Other Function for specific use=====================
-
+import os
 def plot_histograms(counter, pr_probs):
     """
     Create histograms for each class in the 4D array pr_probs.
