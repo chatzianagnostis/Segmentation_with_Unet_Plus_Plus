@@ -54,4 +54,6 @@ Modify the `config.yaml` file as needed:
 
 > We provide an example for `config.yaml`
 
+Refer to the [Segmentation Models Pytorch documentation](https://smp.readthedocs.io/en/latest/) for possible values for the `MODE`, `ENCODER`, `ENCODER_WEIGHTS` and `ACTIVATION` parameters.
+
 
