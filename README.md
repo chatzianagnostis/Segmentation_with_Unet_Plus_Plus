@@ -68,7 +68,8 @@ To find the best values for the `alpha`, `beta`, and `gamma` parameters in the T
    ```bash
    python train.py --config config.yaml --search_best_loss_params
    ```
-Testing Area:
+Testing Area
+
 The following combinations of `alpha`, `beta`, and `gamma` will be tested:
 
 - Alpha (α) and Beta (β):
@@ -97,7 +98,8 @@ To find the best learning rate for training, run the following command:
    ```bash
    python train.py --config config.yaml --search_opt_lr
 ```
-Testing Area:
+Testing Area
+
 The learning rate will be optimized within the range of `1e-5` to `1e-1` using a logarithmic uniform distribution:
 
 > By systematically testing these values, we aim to find the optimal hyperparameters that minimize the Tversky loss and improve the model's performance.
