@@ -58,4 +58,46 @@ Modify the `config.yaml` file as needed:
 
 Refer to the [Segmentation Models Pytorch documentation](https://smp.readthedocs.io/en/latest/) for possible values for the `MODE`, `ENCODER`, `ENCODER_WEIGHTS` and `ACTIVATION` parameters.
 
+## Optimaze HyperParameters
 
+This section describes the process for optimizing hyperparameters for your model using the Tversky loss function. Specifically, we will optimize the `alpha`, `beta`, and `gamma` parameters for the Tversky loss, as well as the learning rate for training.
+
+### Tversky Loss Parameters Optimization
+
+To find the best values for the `alpha`, `beta`, and `gamma` parameters in the Tversky loss function, run the following command:
+   ```bash
+   python train.py --config config.yaml --search_best_loss_params
+   ```
+Testing Area:
+The following combinations of `alpha`, `beta`, and `gamma` will be tested:
+
+- Alpha (α) and Beta (β):
+1. α = 0.5, β = 0.5: Balanced emphasis on false positives and false negatives.
+2. α = 0.7, β = 0.3: More emphasis on false negatives.
+3. α = 0.3, β = 0.7: More emphasis on false positives.
+4. α = 0.6, β = 0.4: Slightly more emphasis on false negatives.
+5. α = 0.4, β = 0.6: Slightly more emphasis on false positives.
+6. α = 0.8, β = 0.2: Strong emphasis on false negatives.
+7. α = 0.2, β = 0.8: Strong emphasis on false positives.
+
+- Gamma (γ):
+1. γ = 1: This is equivalent to the standard Tversky loss. Start here as a baseline.
+2. γ = 0.75: A slight reduction, making the loss a bit more forgiving for well-classified examples.
+3. γ = 1.33: A moderate increase, putting more focus on misclassified examples.
+4. γ = 1.5: Further increases the focus on hard examples.
+5. γ = 2: A significant increase, heavily weighting misclassified examples.
+6. γ = 2.5: An even stronger focus on hard examples.
+7. γ = 3: Very strong emphasis on misclassified examples.
+9. γ = 0.5: If you want to try a value less than 1, this significantly reduces the penalty for well-classified examples.
+
+### Learning Rate
+
+To find the best learning rate for training, run the following command:
+
+   ```bash
+   python train.py --config config.yaml --search_opt_lr
+```
+Testing Area:
+The learning rate will be optimized within the range of `1e-5` to `1e-1` using a logarithmic uniform distribution:
+
+> By systematically testing these values, we aim to find the optimal hyperparameters that minimize the Tversky loss and improve the model's performance.
