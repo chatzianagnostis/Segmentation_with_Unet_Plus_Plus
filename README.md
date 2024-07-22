@@ -58,7 +58,7 @@ Modify the `config.yaml` file as needed:
 
 Refer to the [Segmentation Models Pytorch documentation](https://smp.readthedocs.io/en/latest/) for possible values for the `MODE`, `ENCODER`, `ENCODER_WEIGHTS` and `ACTIVATION` parameters.
 
-## Optimaze HyperParameters
+## Hyperparameter Optimization
 
 This section describes the process for optimizing hyperparameters for your model using the Tversky loss function. Specifically, we will optimize the `alpha`, `beta`, and `gamma` parameters for the Tversky loss, as well as the learning rate for training.
 
