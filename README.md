@@ -2,6 +2,8 @@
 
 This repository represents a segmentation project training and evaluation for unett++ models
 
+>If you have any ideas or suggestions for implementation, please feel free to reach out to me at vchatzianagnostis@gmail.com.
+
 ## Installation
 1. Install the required packages:
    ```bash
@@ -103,3 +105,5 @@ Testing Area
 The learning rate will be optimized within the range of `1e-5` to `1e-1` using a logarithmic uniform distribution:
 
 > By systematically testing these values, we aim to find the optimal hyperparameters that minimize the Tversky loss and improve the model's performance.
+
+>If you have any ideas or suggestions for implementation, please feel free to reach out to me at vchatzianagnostis@gmail.com.
