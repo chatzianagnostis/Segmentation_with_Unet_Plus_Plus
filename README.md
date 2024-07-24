@@ -35,7 +35,7 @@ This repository represents a segmentation project training and evaluation for un
    
 Dataset should have the following format:       
 
-Ensure your dataset has the following structure:                                                                             
+Ensure dataset has the following structure:                                                                             
 
 ![Screenshot 2024-07-19 151656](https://github.com/user-attachments/assets/adb7d363-de71-4f68-9888-630c5da39f99)
 
