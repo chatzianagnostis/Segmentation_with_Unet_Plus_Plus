@@ -105,3 +105,13 @@ The learning rate will be optimized within the range of `1e-5` to `1e-1` using a
 
 > By systematically testing these values, we aim to find the optimal hyperparameters that minimize the Tversky loss and improve the model's performance.
 
+
+## Exporting the Model to ONNX Format
+
+To export the model in the [ONNX standard format](https://onnx.ai/), follow these steps:
+
+1. Open the provided notebook: `export_to_onnx.ipynb`.
+2. In the notebook, pass the desired `image size` and the `path to your model`.
+3. Follow the remaining instructions within the notebook to complete the export process.
+> For more details, refer to the [notebook](https://github.com/chatzianagnostis/Segmentation_with_Unet_Plus_Plus/blob/main/export_onnx.ipynb).
+
