@@ -102,9 +102,10 @@ def main(config_file):
         image = torch.from_numpy(image)
         image = image.permute(2, 0, 1).float() / 255
         x_tensor = image.to('cuda').unsqueeze(0)
-        pr_mask = model(x_tensor)
-        m = nn.Softmax(dim=1)
-        pr_probs = m(pr_mask)
+        with torch.no_grad():
+            pr_mask = model(x_tensor)
+            m = nn.Softmax(dim=1)
+            pr_probs = m(pr_mask)
 
         results = process_batch(pr_probs, batch_size, class_num, conf_thres, iou_thres)
         
